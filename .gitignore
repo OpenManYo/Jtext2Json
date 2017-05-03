@@ -87,3 +87,10 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# for PyCharm
+.idea/
+
+# for test
+test.txt
+test.json
