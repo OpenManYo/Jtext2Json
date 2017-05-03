@@ -89,7 +89,7 @@ ENV/
 .ropeproject
 
 # for PyCharm
-.idea/
+.idea/*
 
 # for test
 test.txt
