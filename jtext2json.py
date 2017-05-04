@@ -36,9 +36,18 @@ class Parser:
     # Mecabで形態素解析を行いJSONへ変換する
     # str : 形態素解析を行うテキスト（1文単位）
     def annotate(self, str):
-        __jsonObj = OrderedDict()
-        __jsonObj["Body"] = str
-        __jsonObj["Tags"] = []
+        __idx = 0
+        __rcvIdx = -1
+        __firstFlg = 0
+        jsonObj = OrderedDict()
+        jsonObj["Body"] = str
+        jsonObj["Phrase"] = []
+
+        # 文節0番目初期化
+        phrase = OrderedDict()
+        phrase["Idx"] = __idx
+        phrase["Rcv"] = __rcvIdx
+        phrase["Tags"] = []
 
         __node = self.__tagger.parseToNode(str)
         while __node:
@@ -58,22 +67,38 @@ class Parser:
                 # featureの要素が7個存在しない場合は恐らく未知語なのでsurfaceをそのまま使う
                 __tag["Read"] = jaconv.kata2hira(__node.surface)
             __tag["PosID"] = __node.posid
-            __jsonObj["Tags"].append(__tag)
+
+            # 文節頭になりうる単語を抽出
+            if (0 <= __node.posid <= 12) or \
+                    (26 <= __node.posid <= 31) or \
+                    (33 <= __node.posid <= 49) or \
+                    (59 <= __node.posid <= 68):
+                if __firstFlg != 0:
+                    jsonObj["Phrase"].append(phrase)
+                    __idx = __idx + 1
+                    # 文節を再初期化
+                    phrase = OrderedDict()
+                    phrase["Idx"] = __idx
+                    phrase["Rcv"] = __rcvIdx
+                    phrase["Tags"] = []
+                else:
+                    __firstFlg = 1
+
+            phrase["Tags"].append(__tag)
+
             __node = __node.next
 
-        return(__jsonObj)
+        # 最後の文節を登録
+        jsonObj["Phrase"].append(phrase)
+
+        return jsonObj
 
 # ------------------------------
 # Main
 #
 if __name__ == "__main__":
+    __loop = 1
     inFilename = 'test.txt'
-    outFilename = inFilename.split('.')[0] + '.json'
-
-    # 出力ファイル作成
-    outFile = open(outFilename, 'w')
-    outFile.write("{\"File\": \"" + inFilename + "\",\n")
-    outFile.write(" \"Context\": [ \n")
 
     # Mecabパーサー初期化
     parse = Parser()
@@ -86,14 +111,14 @@ if __name__ == "__main__":
         for context in line.replace("。", "。_").split("_"):
             if len(context) == 0:
                 continue
-            jsonTmp = parse.annotate(context)
+            jsonObj = parse.annotate(context)
 
             # JSONへ変換
-            jsonString = json.dumps(jsonTmp, ensure_ascii=False)
-            outFile.write("  " + jsonString + ",\n")
+            outFilename = "%s_%08d.json" % (inFilename.split('.')[0], __loop)
+            outFile = open(outFilename, 'w')
+            outFile.write(json.dumps(jsonObj, ensure_ascii=False))
+            outFile.close()
 
-    outFile.write("  ]\n")
-    outFile.write("}\n")
-    outFile.close()
+            __loop = __loop + 1
 
     print("Success!!")

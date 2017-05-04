@@ -93,4 +93,4 @@ ENV/
 
 # for test
 test.txt
-test.json
+test*.json
