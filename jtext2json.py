@@ -37,7 +37,8 @@ class Parser:
     # str : 形態素解析を行うテキスト（1文単位）
     def annotate(self, str):
         __idx = 0
-        __rcvIdx = -1
+        __rcvIdx = [-1, -1]
+        __rcvOfst = -1
         __firstFlg = 0
         jsonObj = OrderedDict()
         jsonObj["Body"] = str
@@ -46,7 +47,7 @@ class Parser:
         # 文節0番目初期化
         phrase = OrderedDict()
         phrase["Idx"] = __idx
-        phrase["Rcv"] = __rcvIdx
+        phrase["RcvIdx"] = __rcvIdx
         phrase["Tags"] = []
 
         __node = self.__tagger.parseToNode(str)
@@ -69,7 +70,8 @@ class Parser:
             __tag["PosID"] = __node.posid
 
             # 文節頭になりうる単語を抽出
-            if (0 <= __node.posid <= 12) or \
+            if (0 <= __node.posid <= 6) or \
+                    (10 <= __node.posid <= 12) or \
                     (26 <= __node.posid <= 31) or \
                     (33 <= __node.posid <= 49) or \
                     (59 <= __node.posid <= 68):
@@ -79,7 +81,7 @@ class Parser:
                     # 文節を再初期化
                     phrase = OrderedDict()
                     phrase["Idx"] = __idx
-                    phrase["Rcv"] = __rcvIdx
+                    phrase["RcvIdx"] = __rcvIdx
                     phrase["Tags"] = []
                 else:
                     __firstFlg = 1
@@ -108,7 +110,7 @@ if __name__ == "__main__":
         line = line.replace('\n', '')
 
         # 「。」毎にパースを行う ※それ以外は未対応
-        for context in line.replace("。", "。_").split("_"):
+        for context in line.replace("。", "。___").split("___"):
             if len(context) == 0:
                 continue
             jsonObj = parse.annotate(context)
